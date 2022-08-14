@@ -2,6 +2,18 @@
 
 A pretty promise error handling library.
 
+## Installing
+
+Using npm:
+```bash
+npm install -s git+https://github.com/A2Workspace/arrestor-gear.git
+```
+
+Using yarn:
+```bash
+yarn add git+https://github.com/A2Workspace/arrestor-gear.git
+```
+
 ## Quickstart
 
 ```js
