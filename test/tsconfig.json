@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "baseUrl": "../src",
+    "paths": {
+      "@src/*": [
+        "./*"
+      ]
+    },
+    "types": [
+      "@types/node",
+      "@types/jest"
+    ]
+  }
+}
