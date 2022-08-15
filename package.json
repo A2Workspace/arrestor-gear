@@ -25,6 +25,7 @@
     "build": "siroc build",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test-coverage": "jest --coverage",
     "watch": "siroc build --watch"
   },
   "devDependencies": {
