@@ -44,7 +44,8 @@ export default class ArrestorGear {
     );
 
     promise = promise.finally(() => {
-      this._fireHooks(this._onFinallyHooks);
+      const isFulfilled = this._promiseStatus === PromiseStatus.FULFILLED;
+      this._fireHooks(this._onFinallyHooks, isFulfilled);
     });
 
     this._promiseStatus = PromiseStatus.PENDING;
@@ -107,16 +108,18 @@ export default class ArrestorGear {
     return this;
   }
 
-  finally(handler?: () => void): Promise<void> {
+  finally(handler?: (isFulfilled: boolean) => any): Promise<any> {
     if (handler) {
       this._onFinallyHooks.push(handler);
 
       if (this.isSettled()) {
-        handler();
+        handler(this._promiseStatus === PromiseStatus.FULFILLED);
       }
     }
 
-    return Promise.race([this._promise]).finally();
+    return Promise.race([this._promise]).then(() => {
+      return this._promiseStatus === PromiseStatus.FULFILLED;
+    });
   }
 
   isSettled(): boolean {

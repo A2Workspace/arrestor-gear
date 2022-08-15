@@ -163,4 +163,23 @@ describe('core/ArrestorGear', function () {
       expect(handleError).toHaveBeenCalledWith('abort');
     });
   });
+
+  describe('finally()', function () {
+    test('Should return a Promise', async () => {
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      await expect(ag.finally()).resolves.toBe(true);
+    });
+
+    test('Should execute onFinally callback and pass the isFulfilled value', async () => {
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      const handleOnFinally = jest.fn((isFulfilled) => isFulfilled);
+
+      await ag.finally(handleOnFinally);
+
+      expect(handleOnFinally).toHaveBeenCalledTimes(1);
+      expect(handleOnFinally).toHaveBeenCalledWith(true);
+    });
+  });
 });
