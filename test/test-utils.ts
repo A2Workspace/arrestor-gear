@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { HttpError, HttpResponseData } from '@src/types';
+import axios, { AxiosRequestConfig } from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 
 const ENDPOINT = '/endpoint';
@@ -12,7 +13,7 @@ export function initMockAxios() {
     resetMock(): void {
       mock.reset();
     },
-    mockRquest(statusOrCallback: number | mockAxiosHandler, data?: any): void {
+    mockRquest(statusOrCallback: number | ((mock: MockAdapter) => void), data?: any): void {
       if (typeof statusOrCallback === 'function') {
         statusOrCallback(mock);
       } else {
@@ -22,4 +23,21 @@ export function initMockAxios() {
   };
 }
 
-type mockAxiosHandler = (mock: MockAdapter) => void;
+export function createHttpError(status: number, data?: any): HttpError<any> {
+  const response = {
+    data,
+    status,
+    statusText: '',
+    headers: {},
+    config: {},
+  };
+
+  return {
+    isAxiosError: true,
+    response,
+    name: '',
+    message: '',
+    config: {} as AxiosRequestConfig,
+    toJSON: () => ({}),
+  };
+}

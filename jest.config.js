@@ -3,6 +3,9 @@ const { compilerOptions } = require('./test/tsconfig');
 
 module.exports = {
   verbose: true,
+  coverageDirectory: 'coverage',
+  coveragePathIgnorePatterns: ['/node_modules/', '/test/test-utils.ts'],
+  coverageReporters: ['text-summary', 'json', 'html'],
   preset: 'ts-jest',
   testEnvironment: 'node',
   globals: {

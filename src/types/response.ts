@@ -13,3 +13,7 @@ export type HttpError<T = HttpResponseData, D = any> = AxiosError<T, D>;
 export type HttpErrorHandler = (error: HttpError<HttpResponseData>) => any;
 
 export type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
+
+export type RejectionHandler = (reason: any) => PromiseLike<any>;
+
+export type StatusCodePatterns = number | string | Array<number | string>;

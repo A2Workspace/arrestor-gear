@@ -13,7 +13,8 @@
     },
     "types": [
       "@types/node",
-      "@types/jest"
+      "@types/jest",
+      "../src/core/types"
     ]
   }
 }

@@ -15,8 +15,7 @@
   "author": "Shishamou",
   "exports": {
     ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js"
+      "require": "./dist/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -24,6 +23,7 @@
   "scripts": {
     "build": "siroc build",
     "test": "jest",
+    "test-coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "watch": "siroc build --watch"
   },

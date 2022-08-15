@@ -13,7 +13,6 @@ declare class ValidationMessageBag {
     first(key?: string): string | null;
     all(formatter?: ValidationErrorsFormatter): ValidationErrors;
 }
-declare function formatErrorMessages(errors: any): Array<string>;
 declare type ValidationErrors = {
     [key: string]: Array<string>;
 };
@@ -27,6 +26,7 @@ declare type HttpResponseData<T = any> = {
 declare type HttpError<T = HttpResponseData, D = any> = AxiosError<T, D>;
 declare type HttpErrorHandler = (error: HttpError<HttpResponseData>) => any;
 declare type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
+declare type StatusCodePatterns = number | string | Array<number | string>;
 
 declare enum PromiseStatus {
     DEFAULT = "default",
@@ -49,14 +49,18 @@ declare class ArrestorGear {
     goAround(): void;
     passOver(enabled?: boolean): void;
     onFulfilled(handler: (promiseValue: any) => void): this;
-    finally(handler?: () => void): Promise<void>;
+    finally(handler?: (isFulfilled: boolean) => any): Promise<any>;
     isSettled(): boolean;
     captureAxiosError(handler: HttpErrorHandler): this;
-    captureStatusCode(code: number | string | Array<number | string>, handler: HttpErrorHandler): this;
+    captureStatusCode(patterns: StatusCodePatterns, handler: HttpErrorHandler): this;
     captureValidationError(handler: ValidationErrorHandler): this;
     captureAny(handler: (error: any) => any): this;
 }
 
+declare function matchHttpError(error: any): boolean;
+declare function matchHttpStatusCode(error: any, patterns: StatusCodePatterns): boolean;
+declare function matchHttpValidationError(error: any): boolean;
+
 declare function arrestorGear(promise: Promise<any>): ArrestorGear;
 
-export { ValidationErrors, ValidationErrorsFormatter, arrestorGear as default, formatErrorMessages };
+export { ArrestorGear, ValidationMessageBag, arrestorGear as default, matchHttpError, matchHttpStatusCode, matchHttpValidationError };

@@ -5,8 +5,46 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function wrapArray(value) {
   return Array.isArray(value) ? value : [value];
 }
-function isHttpError(error) {
+function isAxiosError(error) {
   return typeof error === "object" && error.isAxiosError === true;
+}
+function isHttpError(error) {
+  return isAxiosError(error);
+}
+function matchHttpError(error) {
+  return isHttpError(error);
+}
+function matchHttpStatusCode(error, patterns) {
+  return isHttpError(error) && matchStatusCode(patterns, error.response.status);
+}
+function matchHttpValidationError(error) {
+  return isHttpError(error) && matchStatusCode(422, error.response.status);
+}
+function matchStatusCode(patterns, value) {
+  patterns = wrapArray(patterns);
+  value = String(resolveResponseStatusCode(value));
+  let callback = function(pattern) {
+    if (typeof pattern === "string") {
+      pattern = pattern.toLowerCase();
+      pattern = pattern.replace(/x/g, "\\d");
+      return new RegExp(`^${pattern}$`).test(value);
+    }
+    return String(pattern) === value;
+  };
+  return Boolean(patterns.find(callback));
+}
+function resolveResponseStatusCode(value) {
+  var _a;
+  if (typeof value === "number") {
+    return value;
+  }
+  if (!isNaN(value)) {
+    return parseInt(value);
+  }
+  if (typeof value === "object") {
+    return ((_a = value.response) == null ? void 0 : _a.status) || value.status || null;
+  }
+  return null;
 }
 
 class ValidationMessageBag {
@@ -91,7 +129,8 @@ class ArrestorGear {
       this._fireArrestors(reason);
     });
     promise = promise.finally(() => {
-      this._fireHooks(this._onFinallyHooks);
+      const isFulfilled = this._promiseStatus === PromiseStatus.FULFILLED;
+      this._fireHooks(this._onFinallyHooks, isFulfilled);
     });
     this._promiseStatus = PromiseStatus.PENDING;
     this._promise = promise;
@@ -141,66 +180,68 @@ class ArrestorGear {
     if (handler) {
       this._onFinallyHooks.push(handler);
       if (this.isSettled()) {
-        handler();
+        handler(this._promiseStatus === PromiseStatus.FULFILLED);
       }
     }
-    return Promise.race([this._promise]).finally();
+    return Promise.race([this._promise]).then(() => {
+      return this._promiseStatus === PromiseStatus.FULFILLED;
+    });
   }
   isSettled() {
     return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
   }
   captureAxiosError(handler) {
-    this._arrestors.push(createSimpleArrestor(function(reason) {
-      if (isHttpError(reason)) {
+    const arrestor = createSimpleArrestor(function(reason) {
+      if (matchHttpError(reason)) {
         handler(reason);
         return true;
       }
-    }, handler));
+    }, handler);
+    this._arrestors.push(arrestor);
     return this;
   }
-  captureStatusCode(code, handler) {
-    let patterns = wrapArray(code);
-    this._arrestors.push(createSimpleArrestor(function(reason) {
-      if (isHttpError(reason) && matchStatusCode(patterns, reason.response.status)) {
+  captureStatusCode(patterns, handler) {
+    const arrestor = createSimpleArrestor(function(reason) {
+      if (matchHttpStatusCode(reason, patterns)) {
         handler(reason);
         return true;
       }
-    }, handler));
+    }, handler);
+    this._arrestors.push(arrestor);
     return this;
   }
   captureValidationError(handler) {
-    return this.captureStatusCode(422, function(error) {
-      handler(new ValidationMessageBag(error.response));
-    });
+    const arrestor = createSimpleArrestor(function(reason) {
+      if (matchHttpValidationError(reason)) {
+        handler(new ValidationMessageBag(reason.response));
+        return true;
+      }
+    }, handler);
+    this._arrestors.push(arrestor);
+    return this;
   }
   captureAny(handler) {
-    this._arrestors.push(createSimpleArrestor(function(reason) {
+    const arrestor = createSimpleArrestor(function(reason) {
       handler(reason);
       return true;
-    }, handler));
+    }, handler);
+    this._arrestors.push(arrestor);
     return this;
   }
 }
-function createSimpleArrestor(catcher, handler) {
-  let arrestor = catcher;
-  arrestor._handler = handler;
+function createSimpleArrestor(errorHandler, callback) {
+  let arrestor = errorHandler;
+  arrestor._handler = callback;
   return arrestor;
-}
-function matchStatusCode(patterns, value) {
-  let result = patterns.find((pattern) => {
-    if (typeof pattern === "string") {
-      pattern = pattern.toLowerCase();
-      pattern = pattern.replace(/x/g, "\\d");
-      return new RegExp(`^${pattern}$`).test(String(value));
-    }
-    return String(pattern) === String(value);
-  });
-  return Boolean(result);
 }
 
 function arrestorGear(promise) {
   return new ArrestorGear(promise);
 }
 
+exports.ArrestorGear = ArrestorGear;
+exports.ValidationMessageBag = ValidationMessageBag;
 exports["default"] = arrestorGear;
-exports.formatErrorMessages = formatErrorMessages;
+exports.matchHttpError = matchHttpError;
+exports.matchHttpStatusCode = matchHttpStatusCode;
+exports.matchHttpValidationError = matchHttpValidationError;
