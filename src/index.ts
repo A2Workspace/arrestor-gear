@@ -5,3 +5,4 @@ export default function arrestorGear(promise: Promise<any>): ArrestorGear {
 }
 
 export * from './core';
+export * from './types';
