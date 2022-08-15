@@ -9,6 +9,24 @@ describe('core/ArrestorGear', function () {
     resetMock();
   });
 
+  describe('constructor()', function () {
+    test('Create by function which return a Promise', async () => {
+      const ag = new ArrestorGear(function () {
+        return Promise.resolve('RESOLVED');
+      });
+
+      await expect(ag.finally()).resolves.toBe(true);
+    });
+
+    test('Should throw a TypeError when creation function dose not return a Promise', async () => {
+      const t = () => {
+        new ArrestorGear(() => 'RESOLVED' as any);
+      };
+
+      expect(t).toThrow(TypeError);
+    });
+  });
+
   describe('captureAxiosError()', function () {
     test('Basic', async () => {
       mockRquest(502);
