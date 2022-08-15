@@ -1,5 +1,5 @@
-import { HttpErrorHandler, ValidationErrorHandler } from '../types/response';
-import { isHttpError, wrapArray } from './utils';
+import { HttpErrorHandler, StatusCodePatterns, ValidationErrorHandler } from '../types/response';
+import { isHttpError, matchHttpError, matchHttpStatusCode, matchHttpValidationError, wrapArray } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 enum PromiseStatus {
@@ -124,77 +124,68 @@ export default class ArrestorGear {
   }
 
   captureAxiosError(handler: HttpErrorHandler): this {
-    this._arrestors.push(
-      createSimpleArrestor(function (reason: any) {
-        if (isHttpError(reason)) {
-          handler(reason);
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      if (matchHttpError(reason)) {
+        handler(reason);
 
-          return true;
-        }
-      }, handler)
-    );
+        return true;
+      }
+    }, handler);
+
+    this._arrestors.push(arrestor);
 
     return this;
   }
 
-  captureStatusCode(code: number | string | Array<number | string>, handler: HttpErrorHandler): this {
-    let patterns: Array<number | string> = wrapArray(code);
+  captureStatusCode(patterns: StatusCodePatterns, handler: HttpErrorHandler): this {
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      if (matchHttpStatusCode(reason, patterns)) {
+        handler(reason);
 
-    this._arrestors.push(
-      createSimpleArrestor(function (reason: any) {
-        if (isHttpError(reason) && matchStatusCode(patterns, reason.response.status)) {
-          handler(reason);
+        return true;
+      }
+    }, handler);
 
-          return true;
-        }
-      }, handler)
-    );
+    this._arrestors.push(arrestor);
 
     return this;
   }
 
   captureValidationError(handler: ValidationErrorHandler): this {
-    return this.captureStatusCode(422, function (error) {
-      handler(new ValidationMessageBag(error.response));
-    });
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      if (matchHttpValidationError(reason)) {
+        handler(new ValidationMessageBag(reason.response));
+
+        return true;
+      }
+    }, handler);
+
+    this._arrestors.push(arrestor);
+
+    return this;
   }
 
   captureAny(handler: (error: any) => any): this {
-    this._arrestors.push(
-      createSimpleArrestor(function (reason: any) {
-        handler(reason);
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      handler(reason);
 
-        return true;
-      }, handler)
-    );
+      return true;
+    }, handler);
+
+    this._arrestors.push(arrestor);
 
     return this;
   }
 }
 
-function createSimpleArrestor(catcher: Function, handler: Function): SimpleArrestor {
-  let arrestor = catcher as SimpleArrestor;
-  arrestor._handler = handler;
+function createSimpleArrestor(errorHandler: (reason: any) => boolean, callback: Function): SimpleArrestor {
+  let arrestor = errorHandler as SimpleArrestor;
+  arrestor._handler = callback;
 
   return arrestor;
 }
 
 type SimpleArrestor = {
-  (reason: any): any;
+  (reason: any): boolean;
   _handler: Function;
 };
-
-function matchStatusCode(patterns: Array<number | string>, value: number): boolean {
-  let result = patterns.find((pattern: number | string) => {
-    if (typeof pattern === 'string') {
-      pattern = pattern.toLowerCase();
-      pattern = pattern.replace(/x/g, '\\d');
-
-      return new RegExp(`^${pattern}$`).test(String(value));
-    }
-
-    return String(pattern) === String(value);
-  });
-
-  return Boolean(result);
-}

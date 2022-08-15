@@ -1,12 +1,30 @@
+import { StatusCodePatterns } from '../types';
+
 export function wrapArray(value: any): Array<any> {
   return Array.isArray(value) ? value : [value];
 }
 
-export function isHttpError(error: any): boolean {
+export function isAxiosError(error: any): boolean {
   return typeof error === 'object' && error.isAxiosError === true;
 }
 
-export function matchStatusCode(patterns: StatusCodeMatcherPatterns, value: any): boolean {
+export function isHttpError(error: any): boolean {
+  return isAxiosError(error);
+}
+
+export function matchHttpError(error: any): boolean {
+  return isHttpError(error);
+}
+
+export function matchHttpStatusCode(error: any, patterns: StatusCodePatterns): boolean {
+  return isHttpError(error) && matchStatusCode(patterns, error.response.status);
+}
+
+export function matchHttpValidationError(error: any): boolean {
+  return isHttpError(error) && matchStatusCode(422, error.response.status);
+}
+
+export function matchStatusCode(patterns: StatusCodePatterns, value: any): boolean {
   patterns = wrapArray(patterns);
   value = String(resolveResponseStatusCode(value));
 
@@ -39,5 +57,3 @@ export function resolveResponseStatusCode(value: any): number | null {
 
   return null;
 }
-
-export type StatusCodeMatcherPatterns = number | string | Array<number | string>;
