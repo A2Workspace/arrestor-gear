@@ -1,10 +1,12 @@
-import { HttpErrorHandler, RejectionHandler, StatusCodePatterns, ValidationErrorHandler } from '../types';
+import { HttpErrorHandler, StatusCodePatterns, ValidationErrorHandler } from '../types';
 import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 type Arrestor = {
   (reason: any): Promise<any>;
 };
+
+type RejectionHandler = (reason: any) => any;
 
 export function captureAxiosError(reasonOrCallback: HttpErrorHandler | any): RejectionHandler | Promise<any> {
   let arrestor: Arrestor = function (reason: any): Promise<any> {
@@ -16,7 +18,7 @@ export function captureAxiosError(reasonOrCallback: HttpErrorHandler | any): Rej
   };
 
   if (typeof reasonOrCallback === 'function') {
-    return (reason: any) => arrestor(reason).then(reasonOrCallback);
+    return (reason: any): any => arrestor(reason).then(reasonOrCallback);
   }
 
   return arrestor(reasonOrCallback);
