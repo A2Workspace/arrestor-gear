@@ -61,6 +61,11 @@ declare function matchHttpError(error: any): boolean;
 declare function matchHttpStatusCode(error: any, patterns: StatusCodePatterns): boolean;
 declare function matchHttpValidationError(error: any): boolean;
 
+declare type RejectionHandler = (reason: any) => any;
+declare function captureAxiosError(reasonOrCallback: HttpErrorHandler | any): RejectionHandler | Promise<any>;
+declare function captureStatusCode(patterns: StatusCodePatterns, reasonOrCallback: HttpErrorHandler | any): RejectionHandler | Promise<any>;
+declare function captureValidationError(reasonOrCallback: ValidationErrorHandler | any): RejectionHandler | Promise<any>;
+
 declare function arrestorGear(promise: Promise<any>): ArrestorGear;
 
-export { ArrestorGear, ValidationMessageBag, arrestorGear as default, matchHttpError, matchHttpStatusCode, matchHttpValidationError };
+export { ArrestorGear, ValidationMessageBag, captureAxiosError, captureStatusCode, captureValidationError, arrestorGear as default, matchHttpError, matchHttpStatusCode, matchHttpValidationError };

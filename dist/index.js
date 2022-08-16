@@ -235,12 +235,52 @@ function createSimpleArrestor(errorHandler, callback) {
   return arrestor;
 }
 
+function captureAxiosError(reasonOrCallback) {
+  let arrestor = function(reason) {
+    if (matchHttpError(reason)) {
+      return Promise.resolve(reason);
+    }
+    return Promise.reject(reason);
+  };
+  if (typeof reasonOrCallback === "function") {
+    return (reason) => arrestor(reason).then(reasonOrCallback);
+  }
+  return arrestor(reasonOrCallback);
+}
+function captureStatusCode(patterns, reasonOrCallback) {
+  let arrestor = function(reason) {
+    if (matchHttpStatusCode(reason, patterns)) {
+      return Promise.resolve(reason);
+    }
+    return Promise.reject(reason);
+  };
+  if (typeof reasonOrCallback === "function") {
+    return (reason) => arrestor(reason).then(reasonOrCallback);
+  }
+  return arrestor(reasonOrCallback);
+}
+function captureValidationError(reasonOrCallback) {
+  let arrestor = function(reason) {
+    if (matchHttpValidationError(reason)) {
+      return Promise.resolve(new ValidationMessageBag(reason.response));
+    }
+    return Promise.reject(reason);
+  };
+  if (typeof reasonOrCallback === "function") {
+    return (reason) => arrestor(reason).then(reasonOrCallback);
+  }
+  return arrestor(reasonOrCallback);
+}
+
 function arrestorGear(promise) {
   return new ArrestorGear(promise);
 }
 
 exports.ArrestorGear = ArrestorGear;
 exports.ValidationMessageBag = ValidationMessageBag;
+exports.captureAxiosError = captureAxiosError;
+exports.captureStatusCode = captureStatusCode;
+exports.captureValidationError = captureValidationError;
 exports["default"] = arrestorGear;
 exports.matchHttpError = matchHttpError;
 exports.matchHttpStatusCode = matchHttpStatusCode;
