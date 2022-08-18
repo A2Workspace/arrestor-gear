@@ -1,6 +1,6 @@
 # A2Workspace/Arrestor-Gear
 
-A pretty promise error handling library.
+A elegant Promise error handler.
 
 ## Installing
 
@@ -30,7 +30,7 @@ ag.finally(() => {
   this.processing = false;
 });
 
-ag.captureValidationError(true, (messageBag) => {
+ag.captureValidationError((messageBag) => {
   this.$message.error(messageBag.first());
 
   this.errors = messageBag.all((messages) => messages[0]);
