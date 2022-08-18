@@ -16,6 +16,9 @@
   "exports": {
     ".": {
       "require": "./dist/index.js"
+    },
+    "./core": {
+      "require": "./dist/core.js"
     }
   },
   "main": "./dist/index.js",
@@ -24,8 +27,6 @@
     "build": "siroc build",
     "test": "jest",
     "test-coverage": "jest --coverage",
-    "test:watch": "jest --watch",
-    "watch": "siroc build --watch"
   },
   "devDependencies": {
     "@types/jest": "^28.1.6",
