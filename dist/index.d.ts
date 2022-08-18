@@ -23,6 +23,9 @@ declare type HttpResponseData<T = any> = {
     message: string;
     errors: T;
 };
+declare type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
+    response: HttpResponse<T>;
+};
 declare type StatusCodePatterns = number | string | Array<number | string>;
 
 declare enum PromiseStatus {
@@ -48,8 +51,8 @@ declare class ArrestorGear {
     onFulfilled(handler: (promiseValue: any) => void): this;
     finally(handler?: (isFulfilled: boolean) => any): Promise<any>;
     isSettled(): boolean;
-    captureAxiosError(handler: (error: AxiosError<any>) => any): this;
-    captureStatusCode(patterns: StatusCodePatterns, handler: (error: AxiosError<any>) => any): this;
+    captureAxiosError(handler: (error: HttpError) => any): this;
+    captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this;
     captureValidationError(handler: (messageBag: ValidationMessageBag) => any): this;
     captureAny(handler: (error: any) => any): this;
 }

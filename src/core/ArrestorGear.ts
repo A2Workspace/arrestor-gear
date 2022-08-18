@@ -1,5 +1,4 @@
-import { AxiosError } from 'axios';
-import { StatusCodePatterns } from '../types/response';
+import { HttpError, StatusCodePatterns } from '../types/response';
 import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
@@ -131,7 +130,7 @@ export default class ArrestorGear {
     return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
   }
 
-  captureAxiosError(handler: (error: AxiosError<any>) => any): this {
+  captureAxiosError(handler: (error: HttpError) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpError(reason)) {
         handler(reason);
@@ -145,7 +144,7 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureStatusCode(patterns: StatusCodePatterns, handler: (error: AxiosError<any>) => any): this {
+  captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
         handler(reason);

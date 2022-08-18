@@ -20,14 +20,16 @@ describe('e2e', function () {
 
     const handleResponse = jest.fn(() => {});
     const handleValidationError = jest.fn(() => {});
-    const handlePermissionDenied = jest.fn(() => {});
-    const handleAxiosError = jest.fn(() => {});
+    const handlePermissionDenied = jest.fn((error) => error.response.data);
+    const handleAxiosError = jest.fn((error) => error.response.data);
     const handleError = jest.fn(() => {});
 
     const ag = arrestorGear(axios.post(ENDPOINT));
 
     ag.onFulfilled(handleResponse);
-    ag.captureStatusCode([401, 403], handlePermissionDenied);
+    ag.captureStatusCode([401, 403], (error) => {
+      handlePermissionDenied(error.response.data);
+    });
     ag.captureValidationError(handleValidationError);
     ag.captureAxiosError(handleAxiosError);
     ag.captureAny(handleError);

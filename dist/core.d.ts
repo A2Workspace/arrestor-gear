@@ -1,4 +1,4 @@
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosResponse, AxiosError } from 'axios';
 
 declare class ValidationMessageBag {
     private _response;
@@ -24,7 +24,10 @@ declare type HttpResponseData<T = any> = {
     message: string;
     errors: T;
 };
-declare type HttpErrorHandler = (error: AxiosError<any>) => any;
+declare type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
+    response: HttpResponse<T>;
+};
+declare type HttpErrorHandler = (error: HttpError<HttpResponseData>) => any;
 declare type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
 declare type StatusCodePatterns = number | string | Array<number | string>;
 
