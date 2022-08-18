@@ -9,7 +9,7 @@ describe('e2e', function () {
     resetMock();
   });
 
-  test('post invalid form data', async function () {
+  test('Handling invalid form data', async function () {
     mockRquest(422, {
       message: 'You know the rules',
       errors: {

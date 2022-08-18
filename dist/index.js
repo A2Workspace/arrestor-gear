@@ -1,7 +1,5 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 function wrapArray(value) {
   return Array.isArray(value) ? value : [value];
 }
@@ -115,6 +113,9 @@ class ArrestorGear {
     this._passOverMode = false;
     if (typeof promise === "function") {
       promise = promise();
+      if (!(promise instanceof Promise)) {
+        throw new TypeError("Initial function must return an Promise");
+      }
     }
     if (!(promise instanceof Promise)) {
       throw new TypeError("Argument must be a Promise");
@@ -235,53 +236,8 @@ function createSimpleArrestor(errorHandler, callback) {
   return arrestor;
 }
 
-function captureAxiosError(reasonOrCallback) {
-  let arrestor = function(reason) {
-    if (matchHttpError(reason)) {
-      return Promise.resolve(reason);
-    }
-    return Promise.reject(reason);
-  };
-  if (typeof reasonOrCallback === "function") {
-    return (reason) => arrestor(reason).then(reasonOrCallback);
-  }
-  return arrestor(reasonOrCallback);
-}
-function captureStatusCode(patterns, reasonOrCallback) {
-  let arrestor = function(reason) {
-    if (matchHttpStatusCode(reason, patterns)) {
-      return Promise.resolve(reason);
-    }
-    return Promise.reject(reason);
-  };
-  if (typeof reasonOrCallback === "function") {
-    return (reason) => arrestor(reason).then(reasonOrCallback);
-  }
-  return arrestor(reasonOrCallback);
-}
-function captureValidationError(reasonOrCallback) {
-  let arrestor = function(reason) {
-    if (matchHttpValidationError(reason)) {
-      return Promise.resolve(new ValidationMessageBag(reason.response));
-    }
-    return Promise.reject(reason);
-  };
-  if (typeof reasonOrCallback === "function") {
-    return (reason) => arrestor(reason).then(reasonOrCallback);
-  }
-  return arrestor(reasonOrCallback);
-}
-
 function arrestorGear(promise) {
   return new ArrestorGear(promise);
 }
 
-exports.ArrestorGear = ArrestorGear;
-exports.ValidationMessageBag = ValidationMessageBag;
-exports.captureAxiosError = captureAxiosError;
-exports.captureStatusCode = captureStatusCode;
-exports.captureValidationError = captureValidationError;
-exports["default"] = arrestorGear;
-exports.matchHttpError = matchHttpError;
-exports.matchHttpStatusCode = matchHttpStatusCode;
-exports.matchHttpValidationError = matchHttpValidationError;
+module.exports = arrestorGear;
