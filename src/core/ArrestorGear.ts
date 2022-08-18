@@ -1,5 +1,6 @@
-import { HttpErrorHandler, StatusCodePatterns, ValidationErrorHandler } from '../types/response';
-import { isHttpError, matchHttpError, matchHttpStatusCode, matchHttpValidationError, wrapArray } from './utils';
+import { AxiosError } from 'axios';
+import { StatusCodePatterns } from '../types/response';
+import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 enum PromiseStatus {
@@ -22,6 +23,10 @@ export default class ArrestorGear {
   constructor(promise: Promise<any> | (() => Promise<any>)) {
     if (typeof promise === 'function') {
       promise = promise();
+
+      if (!(promise instanceof Promise)) {
+        throw new TypeError('Initial function must return an Promise');
+      }
     }
 
     if (!(promise instanceof Promise)) {
@@ -126,7 +131,7 @@ export default class ArrestorGear {
     return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
   }
 
-  captureAxiosError(handler: HttpErrorHandler): this {
+  captureAxiosError(handler: (error: AxiosError<any>) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpError(reason)) {
         handler(reason);
@@ -140,7 +145,7 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureStatusCode(patterns: StatusCodePatterns, handler: HttpErrorHandler): this {
+  captureStatusCode(patterns: StatusCodePatterns, handler: (error: AxiosError<any>) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
         handler(reason);
@@ -154,7 +159,7 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureValidationError(handler: ValidationErrorHandler): this {
+  captureValidationError(handler: (messageBag: ValidationMessageBag) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpValidationError(reason)) {
         handler(new ValidationMessageBag(reason.response));

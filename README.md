@@ -19,14 +19,17 @@ yarn add git+https://github.com/A2Workspace/arrestor-gear.git
 ```js
 import arrestorGear from '@a2workspace/arrestor-gear';
 
-const ag = arrestorGear(axios.post(API_URL, { formData }));
+const ag = arrestorGear(() => {
+  return axios.post(API_URL, { formData });
+});
 
-ag.onFulfilled(() => {
+// Only call on initial Promise resolves successful.
+ag.onFulfilled((resolved) => {
   this.$message.success('Created');
   this.$router.back(-1);
 });
 
-ag.finally(() => {
+ag.finally((isFulfilled: boolean): Promise<any> => {
   this.processing = false;
 });
 

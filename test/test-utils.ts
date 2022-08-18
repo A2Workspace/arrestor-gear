@@ -1,5 +1,4 @@
-import { HttpError, HttpResponseData } from '@src/types';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 
 const ENDPOINT = '/endpoint';
@@ -23,7 +22,7 @@ export function initMockAxios() {
   };
 }
 
-export function createHttpError(status: number, data?: any): HttpError<any> {
+export function createHttpError(status: number, data?: any): AxiosError<any> {
   const response = {
     data,
     status,
