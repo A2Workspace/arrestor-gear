@@ -26,7 +26,7 @@
   "scripts": {
     "build": "siroc build",
     "test": "jest",
-    "test-coverage": "jest --coverage",
+    "test-coverage": "jest --coverage"
   },
   "devDependencies": {
     "@types/jest": "^28.1.6",

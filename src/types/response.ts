@@ -8,9 +8,7 @@ export type HttpResponseData<T = any> = {
   errors: T;
 };
 
-export type HttpError<T = HttpResponseData, D = any> = AxiosError<T, D>;
-
-export type HttpErrorHandler = (error: HttpError<HttpResponseData>) => any;
+export type HttpErrorHandler = (error: AxiosError<any>) => any;
 
 export type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
 
