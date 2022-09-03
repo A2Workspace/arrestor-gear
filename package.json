@@ -1,7 +1,7 @@
 {
   "name": "@a2workspace/arrestor-gear",
-  "version": "0.4.0",
-  "description": "A pretty promise error handling library",
+  "version": "1.0.0",
+  "description": "An elegant Promise error handler.",
   "keywords": [
     "ajax",
     "promise",
