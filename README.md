@@ -1,22 +1,23 @@
 <h1 align="center">🛬 Arrestor Gear</h1>
-<p align="center">An elegant Promise error handler.</p>
-<p align="center">優雅的 Promise 錯誤處理器。</p>
-
 <p align="center">
-<a href="https://github.com/A2Workspace/arrestor-gear/blob/master/LICENSE">
-    <img alt="" src="https://img.shields.io/github/license/A2Workspace/arrestor-gear?style=flat-square">
+<a href="https://github.com/A2Workspace/arrestor-gear">
+    <img alt="" src="https://github.com/A2Workspace/arrestor-gear/actions/workflows/coverage.yml/badge.svg">
 </a>
 <a href="https://codecov.io/gh/A2Workspace/arrestor-gear">
     <img alt="" src="https://img.shields.io/codecov/c/github/A2Workspace/arrestor-gear.svg?style=flat-square">
 </a>
+<a href="https://github.com/A2Workspace/arrestor-gear/blob/master/LICENSE">
+    <img alt="" src="https://img.shields.io/github/license/A2Workspace/arrestor-gear?style=flat-square">
+</a>
 <a href="https://npmjs.com/package/@a2workspace/arrestor-gear">
-    <img alt="" src="https://img.shields.io/npm/v/@a2workspace/arrestor-gear/latest.svg?style=flat-square">
+    <img alt="" src="https://img.shields.io/npm/v/@a2workspace/arrestor-gear.svg?style=flat-square">
 </a>
 <a href="https://npmjs.com/package/@a2workspace/arrestor-gear">
     <img alt="" src="https://img.shields.io/npm/dt/@a2workspace/arrestor-gear.svg?style=flat-square">
 </a>
 </p>
-
+<p align="center">Elegant handling Axios errors.</p>
+<p align="center">優雅的處理 Axios 錯誤。</p>
 
 ## Installation | 安裝
 
@@ -90,6 +91,8 @@ ag.captureAny((error) => {
 支援以下寫法:
 
 ```js
+import arrestorGear from '@a2workspace/arrestor-gear';
+
 // 直接包裹住 `Promise` 物件
 const ag = arrestorGear(axios.post(API_URL, { formData }));
 
@@ -143,7 +146,7 @@ const ProductService = {
   }
 }
 
-// Component.vue
+// src/pages/ProductPage.vue
 function updateProduct(formData) {
   const ag = ProductService.update(formData);
 
