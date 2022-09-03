@@ -1,19 +1,33 @@
-# A2Workspace/Arrestor-Gear
+<h1 align="center">🛬 Arrestor Gear</h1>
+<p align="center">An elegant Promise error handler.</p>
+<p align="center">優雅的 Promise 錯誤處理器。</p>
 
-An elegant Promise error handler.
+<p align="center">
+<a href="https://github.com/A2Workspace/arrestor-gear/blob/master/LICENSE">
+    <img alt="" src="https://img.shields.io/github/license/A2Workspace/arrestor-gear?style=flat-square">
+</a>
+<a href="https://codecov.io/gh/A2Workspace/arrestor-gear">
+    <img alt="" src="https://img.shields.io/codecov/c/github/A2Workspace/arrestor-gear.svg?style=flat-square">
+</a>
+<a href="https://npmjs.com/package/@a2workspace/arrestor-gear">
+    <img alt="" src="https://img.shields.io/npm/v/@a2workspace/arrestor-gear/latest.svg?style=flat-square">
+</a>
+<a href="https://npmjs.com/package/@a2workspace/arrestor-gear">
+    <img alt="" src="https://img.shields.io/npm/dt/@a2workspace/arrestor-gear.svg?style=flat-square">
+</a>
+</p>
 
-優雅的 Promise 錯誤處理器。
 
 ## Installation | 安裝
 
 Using npm:
 ```bash
-npm install -s git+https://github.com/A2Workspace/arrestor-gear.git
+npm install -s @a2workspace/arrestor-gear
 ```
 
 Using yarn:
 ```bash
-yarn add git+https://github.com/A2Workspace/arrestor-gear.git
+yarn add @a2workspace/arrestor-gear
 ```
 
 
