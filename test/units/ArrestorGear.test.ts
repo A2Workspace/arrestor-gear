@@ -131,7 +131,7 @@ describe('core/ArrestorGear', function () {
     });
   });
 
-  describe('captureValidationError()', () => {
+  describe('captureValidationError()', function () {
     test('Basic', async () => {
       mockRquest(422, {});
 
@@ -147,7 +147,9 @@ describe('core/ArrestorGear', function () {
       expect(handleAxiosError).not.toHaveBeenCalled();
 
       expect(handleValidationError).toHaveBeenCalledTimes(1);
-      expect(handleValidationError).toHaveReturnedWith('The given data was invalid');
+      expect(handleValidationError).toHaveReturnedWith(
+        'The given data was invalid'
+      );
       expect(handleValidationError).toBeCalledWith(
         expect.objectContaining({
           response: expect.any(Object),
@@ -179,6 +181,110 @@ describe('core/ArrestorGear', function () {
 
       expect(handleError).toHaveBeenCalledTimes(1);
       expect(handleError).toHaveBeenCalledWith('abort');
+    });
+  });
+
+  describe('onError()', function () {
+    test('case 1', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      ag.onFulfilled(() => {
+        throw 'FAILURE IN ON_FULFILLED CALLBACK';
+      });
+
+      ag.onError(handleError);
+
+      await ag.finally();
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith(
+        'FAILURE IN ON_FULFILLED CALLBACK'
+      );
+    });
+
+    test('case 2', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.reject(true));
+
+      ag.captureAny(() => {
+        throw 'FAILURE IN CAPTURE_ANY CALLBACK';
+      });
+
+      ag.onError(handleError);
+
+      await ag.finally();
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith(
+        'FAILURE IN CAPTURE_ANY CALLBACK'
+      );
+    });
+
+    test('case 3', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      ag.onError(handleError);
+
+      await ag.finally(() => {
+        throw 'FAILURE IN FINALLY CALLBACK';
+      });
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith('FAILURE IN FINALLY CALLBACK');
+    });
+
+    test('Should support multiple callback functions', async () => {
+      const callback1 = jest.fn((error) => error);
+      const callback2 = jest.fn((error) => error);
+      const callback3 = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      ag.onError(callback1);
+      ag.onError(callback2);
+      ag.onError(callback3);
+
+      ag.onFulfilled(() => {
+        throw 'TEST MULTIPLE HANDLERS';
+      });
+
+      await ag.finally();
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback1).toHaveBeenCalledWith('TEST MULTIPLE HANDLERS');
+
+      expect(callback2).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledWith('TEST MULTIPLE HANDLERS');
+
+      expect(callback3).toHaveBeenCalledTimes(1);
+      expect(callback3).toHaveBeenCalledWith('TEST MULTIPLE HANDLERS');
+    });
+
+    test('Should stop iterating callbacks when TRUE returns', async () => {
+      const callback1 = jest.fn((error) => {});
+      const callback2 = jest.fn((error) => true);
+      const callback3 = jest.fn((error) => {});
+
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      ag.onError(callback1);
+      ag.onError(callback2);
+      ag.onError(callback3);
+
+      ag.onFulfilled(() => {
+        throw 'TEST EARLY STOP';
+      });
+
+      await ag.finally();
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledTimes(1);
+      expect(callback3).toHaveBeenCalledTimes(0);
     });
   });
 

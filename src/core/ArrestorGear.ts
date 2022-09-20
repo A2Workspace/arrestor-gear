@@ -1,5 +1,9 @@
 import { HttpError, StatusCodePatterns } from '../types/response';
-import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
+import {
+  matchHttpError,
+  matchHttpStatusCode,
+  matchHttpValidationError,
+} from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 enum PromiseStatus {
@@ -16,8 +20,8 @@ export default class ArrestorGear {
   protected _promiseStatus: PromiseStatus = PromiseStatus.DEFAULT;
   protected _onFulfilledHooks: Array<Function> = [];
   protected _onFinallyHooks: Array<Function> = [];
+  protected _onErrorHooks: Array<Function> = [];
   protected _arrestors: Array<Function> = [];
-  protected _passOverMode: boolean = false;
 
   constructor(promise: Promise<any> | (() => Promise<any>)) {
     if (typeof promise === 'function') {
@@ -59,22 +63,18 @@ export default class ArrestorGear {
   protected _fireHooks(stack: Array<Function>, value: any = null): void {
     let i = 0;
     let len = stack.length;
-    const errorStack: Array<any> = [];
 
     while (i < len) {
       try {
         stack[i++](value);
       } catch (error) {
-        errorStack.push(error);
-        console.error(error);
+        this._fireOnErrorHooks(error);
       }
     }
   }
 
   protected _fireArrestors(reason: any): void {
     const arrestors: Array<Function> = this._arrestors;
-    const isPassOverMode: boolean = this._passOverMode;
-    const errorStack: Array<any> = [];
 
     let i = 0;
     let len = arrestors.length;
@@ -82,24 +82,29 @@ export default class ArrestorGear {
     while (i < len) {
       try {
         // Call error handler and break loop if return value is TRUE.
-        if (arrestors[i++](reason) === true && !isPassOverMode) {
+        if (arrestors[i++](reason) === true) {
           break;
         }
       } catch (error) {
-        errorStack.push(error);
-        console.error(error);
+        this._fireOnErrorHooks(error);
       }
     }
   }
 
-  goAround(): void {
-    if (this.isSettled()) {
-      this._fireArrestors(this._promiseReason);
-    }
-  }
+  protected _fireOnErrorHooks(error: any): void {
+    const callbacks: Array<Function> = this._onErrorHooks;
 
-  passOver(enabled: boolean = true): void {
-    this._passOverMode = enabled;
+    if (callbacks.length === 0) {
+      console.error(error);
+
+      return;
+    }
+
+    for (let callback of callbacks) {
+      if (callback(error) === true) {
+        break;
+      }
+    }
   }
 
   onFulfilled(handler: (promiseValue: any) => void): this {
@@ -108,6 +113,12 @@ export default class ArrestorGear {
     if (this.isSettled()) {
       handler(this._promiseValue);
     }
+
+    return this;
+  }
+
+  onError(handler: (error: any) => boolean | void): this {
+    this._onErrorHooks.push(handler);
 
     return this;
   }
@@ -127,7 +138,10 @@ export default class ArrestorGear {
   }
 
   isSettled(): boolean {
-    return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
+    return (
+      this._promiseStatus === PromiseStatus.FULFILLED ||
+      this._promiseStatus === PromiseStatus.REJECTED
+    );
   }
 
   captureAxiosError(handler: (error: HttpError) => any): this {
@@ -144,7 +158,10 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this {
+  captureStatusCode(
+    patterns: StatusCodePatterns,
+    handler: (error: HttpError) => any
+  ): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
         handler(reason);
@@ -158,7 +175,9 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureValidationError(handler: (messageBag: ValidationMessageBag) => any): this {
+  captureValidationError(
+    handler: (messageBag: ValidationMessageBag) => any
+  ): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpValidationError(reason)) {
         handler(new ValidationMessageBag(reason.response));
@@ -185,7 +204,10 @@ export default class ArrestorGear {
   }
 }
 
-function createSimpleArrestor(errorHandler: (reason: any) => boolean, callback: Function): SimpleArrestor {
+function createSimpleArrestor(
+  errorHandler: (reason: any) => boolean,
+  callback: Function
+): SimpleArrestor {
   let arrestor = errorHandler as SimpleArrestor;
   arrestor._handler = callback;
 
