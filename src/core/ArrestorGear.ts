@@ -22,7 +22,6 @@ export default class ArrestorGear {
   protected _onFinallyHooks: Array<Function> = [];
   protected _onErrorHooks: Array<Function> = [];
   protected _arrestors: Array<Function> = [];
-  protected _passOverMode: boolean = false;
 
   constructor(promise: Promise<any> | (() => Promise<any>)) {
     if (typeof promise === 'function') {
@@ -76,7 +75,6 @@ export default class ArrestorGear {
 
   protected _fireArrestors(reason: any): void {
     const arrestors: Array<Function> = this._arrestors;
-    const isPassOverMode: boolean = this._passOverMode;
 
     let i = 0;
     let len = arrestors.length;
@@ -84,7 +82,7 @@ export default class ArrestorGear {
     while (i < len) {
       try {
         // Call error handler and break loop if return value is TRUE.
-        if (arrestors[i++](reason) === true && !isPassOverMode) {
+        if (arrestors[i++](reason) === true) {
           break;
         }
       } catch (error) {
@@ -107,16 +105,6 @@ export default class ArrestorGear {
         return;
       }
     }
-  }
-
-  goAround(): void {
-    if (this.isSettled()) {
-      this._fireArrestors(this._promiseReason);
-    }
-  }
-
-  passOver(enabled: boolean = true): void {
-    this._passOverMode = enabled;
   }
 
   onFulfilled(handler: (promiseValue: any) => void): this {
