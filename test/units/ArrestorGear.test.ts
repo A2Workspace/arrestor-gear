@@ -131,7 +131,7 @@ describe('core/ArrestorGear', function () {
     });
   });
 
-  describe('captureValidationError()', () => {
+  describe('captureValidationError()', function () {
     test('Basic', async () => {
       mockRquest(422, {});
 
@@ -147,7 +147,9 @@ describe('core/ArrestorGear', function () {
       expect(handleAxiosError).not.toHaveBeenCalled();
 
       expect(handleValidationError).toHaveBeenCalledTimes(1);
-      expect(handleValidationError).toHaveReturnedWith('The given data was invalid');
+      expect(handleValidationError).toHaveReturnedWith(
+        'The given data was invalid'
+      );
       expect(handleValidationError).toBeCalledWith(
         expect.objectContaining({
           response: expect.any(Object),
@@ -179,6 +181,57 @@ describe('core/ArrestorGear', function () {
 
       expect(handleError).toHaveBeenCalledTimes(1);
       expect(handleError).toHaveBeenCalledWith('abort');
+    });
+  });
+
+  describe('onError()', function () {
+    test('case 1', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.resolve(true));
+
+      ag.onFulfilled(() => {
+        throw 'FAILURE IN ON_FULFILLED CALLBACK';
+      });
+
+      ag.onError(handleError);
+
+      await ag.finally();
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith('FAILURE IN ON_FULFILLED CALLBACK');
+    });
+
+    test('case 2', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.reject(true));
+
+      ag.captureAny(() => {
+        throw 'FAILURE IN CAPTURE_ANY CALLBACK';
+      });
+
+      ag.onError(handleError);
+
+      await ag.finally();
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith('FAILURE IN CAPTURE_ANY CALLBACK');
+    });
+
+    test('case 3', async () => {
+      const handleError = jest.fn((error) => error);
+
+      const ag = new ArrestorGear(Promise.reject(true));
+
+      ag.onError(handleError);
+
+      await ag.finally(() => {
+        throw 'FAILURE IN FINALLY CALLBACK';
+      });
+
+      expect(handleError).toHaveBeenCalledTimes(1);
+      expect(handleError).toHaveBeenCalledWith('FAILURE IN FINALLY CALLBACK');
     });
   });
 
