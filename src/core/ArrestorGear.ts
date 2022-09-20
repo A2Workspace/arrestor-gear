@@ -92,7 +92,7 @@ export default class ArrestorGear {
   }
 
   protected _fireOnErrorHooks(error: any): void {
-    const callbacks: Array<Function> = [...this._onErrorHooks].reverse();
+    const callbacks: Array<Function> = this._onErrorHooks;
 
     if (callbacks.length === 0) {
       console.error(error);
@@ -102,7 +102,7 @@ export default class ArrestorGear {
 
     for (let callback of callbacks) {
       if (callback(error) === true) {
-        return;
+        break;
       }
     }
   }
