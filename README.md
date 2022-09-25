@@ -19,18 +19,36 @@
 <p align="center">Elegant handling Axios errors.</p>
 <p align="center">優雅的處理 Axios 錯誤。</p>
 
+- [Installation | 安裝](#installation--安裝)
+- [Quick Start | 快速開始](#quick-start--快速開始)
+- [Flow | 工作流程](#flow--工作流程)
+- [Usage | 如何使用](#usage--如何使用)
+  - [arrestorGear()](#arrestorgear)
+  - [ArrestorGear.onFulfilled()](#arrestorgearonfulfilled)
+  - [ArrestorGear.finally()](#arrestorgearfinally)
+  - [ArrestorGear.onError()](#arrestorgearonerror)
+- [The capture* Methods](#the-capture-methods)
+  - [ArrestorGear.captureValidationError()](#arrestorgearcapturevalidationerror)
+  - [ArrestorGear.captureStatusCode()](#arrestorgearcapturestatuscode)
+  - [ArrestorGear.captureAxiosError()](#arrestorgearcaptureaxioserror)
+  - [ArrestorGear.captureAny()](#arrestorgearcaptureany)
+- [Tips | 其他小技巧](#tips--其他小技巧)
+  - [書寫順序不重要](#書寫順序不重要)
+  - [支援鏈式呼叫](#支援鏈式呼叫)
+
 ## Installation | 安裝
 
 Using npm:
+
 ```bash
 npm install -s @a2workspace/arrestor-gear
 ```
 
 Using yarn:
+
 ```bash
 yarn add @a2workspace/arrestor-gear
 ```
-
 
 ## Quick Start | 快速開始
 
@@ -48,6 +66,11 @@ ag.onFulfilled((resolved) => {
   this.$router.back(-1);
 });
 
+// 註冊一回呼函數。當執行其他回呼函數過程中發生錯誤時會執行此函數。
+ag.onError((error) => {
+  console.error(error);
+});
+
 // 註冊一回呼函數。當 `Promise` 完成時，無論結果，執行此函數。類似於 Promise.finally(() => {})。
 ag.finally((isFulfilled) => {
   this.processing = false;
@@ -56,7 +79,6 @@ ag.finally((isFulfilled) => {
 // 當 `Promise` 為被拒絕 (rejected) 時，且狀態為 422 的情形，執行此回呼函數。反之交由後續的 `capture*` 函數處理。
 ag.captureValidationError((messageBag) => {
   this.$message.error(messageBag.first());
-
   this.errors = messageBag.all((messages) => messages[0]);
 });
 
@@ -78,11 +100,13 @@ ag.captureAxiosError((axiosError) => {
 // 攔截所有 rejected 結果，並執行此回呼函數。適用於放在鏈的最後，後續的攔截函數將不會處理。
 ag.captureAny((error) => {
   this.$message.error('Something wrong here');
-  
   console.error(error);
 });
 ```
 
+## Flow | 工作流程
+
+<p align="center"><img src="/.github/ag-flow.png" alt=""></p>
 
 ## Usage | 如何使用
 
@@ -91,8 +115,6 @@ ag.captureAny((error) => {
 支援以下寫法:
 
 ```js
-import arrestorGear from '@a2workspace/arrestor-gear';
-
 // 直接包裹住 `Promise` 物件
 const ag = arrestorGear(axios.post(API_URL, { formData }));
 
@@ -103,6 +125,11 @@ const ag = arrestorGear(function () {
 
 // 箭頭函數
 const ag = arrestorGear(() => axios.post(API_URL, { formData }));
+
+// 推薦寫法
+const ag = arrestorGear(() => {
+  return axios.post(API_URL, { formData });
+});
 ```
 
 ### ArrestorGear.onFulfilled()
@@ -140,11 +167,11 @@ const ProductService = {
 
     ag.finally(() => {
       this.loading = false;
-    })
+    });
 
     return ag;
-  }
-}
+  },
+};
 
 // src/pages/ProductPage.vue
 function updateProduct(formData) {
@@ -160,7 +187,6 @@ function updateProduct(formData) {
     this.errors = messageBag.all((messages) => messages[0]);
   });
 }
-
 ```
 
 ### ArrestorGear.finally()
@@ -183,8 +209,43 @@ async function handleSubmit() {
 }
 ```
 
+### ArrestorGear.onError()
 
-## Capture Methods
+當調用其他 `callback` 過程中發生錯誤時，會呼叫此方法註冊的函數。
+
+```js
+ag.onFulfilled((resolved) => {
+  throw 'thrown at onFulfilled';
+});
+
+ag.finally((resolved) => {
+  throw 'thrown at finally';
+});
+
+ag.captureAny((resolved) => {
+  throw 'thrown at captureAny';
+});
+
+ag.onError((error) => {
+  console.error(error);
+});
+```
+支援多個 `onError` 註冊，運行時會逐一呼叫:
+```js
+ag.onFulfilled((resolved) => {
+  throw 'thrown at onFulfilled';
+});
+
+ag.onError((error) => {
+  // 1
+});
+
+ag.onError((error) => {
+  // 2
+});
+```
+
+## The capture* Methods
 
 這個套件的關鍵核心---攔截器函數。
 
@@ -263,8 +324,6 @@ ag.captureStatusCode('5XX', (axiosError) => {
 });
 ```
 
-### ArrestorGear.captureAny()
-
 捕獲所有錯誤類型。
 
 通常使用情境是放在鏈的最後，作為通用的錯誤處理。
@@ -283,6 +342,7 @@ ag.captureAny((error) => {
 });
 ```
 
+### ArrestorGear.captureAny()
 
 ## Tips | 其他小技巧
 
@@ -359,7 +419,6 @@ arrestorGear(() => {
   })
 ```
 
-
 ## About | 開發者碎碎念
 
 此套件的最初目的，是為解決 `Axios` 採用 `Promise` 的諸多限制，尤其是肥大的 `then/catch` 區塊加上鏈式寫法，每每佔去檔案的大半空間。為了讓使用率高的 `Axios` 函數也能用起來優雅，我們在經過內部專案五六次疊代後開發出了這個套件。
@@ -371,7 +430,3 @@ arrestorGear(() => {
 ### 為甚麼不用 Async/Await 或 try-catch 處理就好
 
 首先這兩者搭在一起的寫法本身就不美觀。
-
-
-
-
