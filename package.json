@@ -1,6 +1,6 @@
 {
   "name": "@a2workspace/arrestor-gear",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "An elegant Promise error handler.",
   "keywords": [
     "ajax",
@@ -15,14 +15,17 @@
   "author": "Shishamou",
   "exports": {
     ".": {
-      "require": "./dist/index.js"
+      "require": "./dist/index.js",
+      "import": "./dist/index.esm.js"
     },
     "./core": {
       "require": "./dist/core.js"
     }
   },
   "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
   "types": "./dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "siroc build",
     "test": "jest",
