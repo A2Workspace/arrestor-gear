@@ -28,6 +28,9 @@ declare type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
 };
 declare type StatusCodePatterns = number | string | Array<number | string>;
 
+declare type PromiseOrConstructor = Promise<any> | PromiseConstructor;
+declare type PromiseConstructor = () => Promise<any>;
+
 declare enum PromiseStatus {
     DEFAULT = "default",
     PENDING = "pending",
@@ -41,14 +44,14 @@ declare class ArrestorGear {
     protected _promiseStatus: PromiseStatus;
     protected _onFulfilledHooks: Array<Function>;
     protected _onFinallyHooks: Array<Function>;
+    protected _onErrorHooks: Array<Function>;
     protected _arrestors: Array<Function>;
-    protected _passOverMode: boolean;
-    constructor(promise: Promise<any> | (() => Promise<any>));
+    constructor(promiseOrConstructor: PromiseOrConstructor);
     protected _fireHooks(stack: Array<Function>, value?: any): void;
     protected _fireArrestors(reason: any): void;
-    goAround(): void;
-    passOver(enabled?: boolean): void;
+    protected _fireOnErrorHooks(error: any): void;
     onFulfilled(handler: (promiseValue: any) => void): this;
+    onError(handler: (error: any) => boolean | void): this;
     finally(handler?: (isFulfilled: boolean) => any): Promise<any>;
     isSettled(): boolean;
     captureAxiosError(handler: (error: HttpError) => any): this;
@@ -57,6 +60,6 @@ declare class ArrestorGear {
     captureAny(handler: (error: any) => any): this;
 }
 
-declare function arrestorGear(promise: Promise<any>): ArrestorGear;
+declare function arrestorGear(promiseOrConstructor: PromiseOrConstructor): ArrestorGear;
 
 export { arrestorGear as default };

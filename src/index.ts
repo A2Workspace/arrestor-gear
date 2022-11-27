@@ -1,5 +1,6 @@
 import ArrestorGear from './core/ArrestorGear';
+import { PromiseOrConstructor } from './types';
 
-export default function arrestorGear(promise: Promise<any>): ArrestorGear {
-  return new ArrestorGear(promise);
+export default function arrestorGear(promiseOrConstructor: PromiseOrConstructor): ArrestorGear {
+  return new ArrestorGear(promiseOrConstructor);
 }

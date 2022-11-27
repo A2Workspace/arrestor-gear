@@ -13,6 +13,7 @@
   },
   "license": "MIT",
   "author": "Shishamou",
+  "type": "module",
   "exports": {
     ".": {
       "require": "./dist/index.js",
@@ -25,7 +26,6 @@
   "main": "./dist/index.js",
   "module": "./dist/index.esm.js",
   "types": "./dist/index.d.ts",
-  "type": "module",
   "scripts": {
     "build": "siroc build",
     "test": "jest",

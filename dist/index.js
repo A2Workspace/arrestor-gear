@@ -103,16 +103,17 @@ var PromiseStatus;
   PromiseStatus2["REJECTED"] = "rejected";
 })(PromiseStatus || (PromiseStatus = {}));
 class ArrestorGear {
-  constructor(promise) {
+  constructor(promiseOrConstructor) {
     this._promiseValue = null;
     this._promiseReason = null;
     this._promiseStatus = PromiseStatus.DEFAULT;
     this._onFulfilledHooks = [];
     this._onFinallyHooks = [];
+    this._onErrorHooks = [];
     this._arrestors = [];
-    this._passOverMode = false;
-    if (typeof promise === "function") {
-      promise = promise();
+    let promise = promiseOrConstructor;
+    if (typeof promiseOrConstructor === "function") {
+      promise = promiseOrConstructor();
       if (!(promise instanceof Promise)) {
         throw new TypeError("Initial function must return an Promise");
       }
@@ -143,38 +144,45 @@ class ArrestorGear {
       try {
         stack[i++](value);
       } catch (error) {
-        console.error(error);
+        this._fireOnErrorHooks(error);
       }
     }
   }
   _fireArrestors(reason) {
     const arrestors = this._arrestors;
-    const isPassOverMode = this._passOverMode;
     let i = 0;
     let len = arrestors.length;
     while (i < len) {
       try {
-        if (arrestors[i++](reason) === true && !isPassOverMode) {
+        if (arrestors[i++](reason) === true) {
           break;
         }
       } catch (error) {
-        console.error(error);
+        this._fireOnErrorHooks(error);
       }
     }
   }
-  goAround() {
-    if (this.isSettled()) {
-      this._fireArrestors(this._promiseReason);
+  _fireOnErrorHooks(error) {
+    const callbacks = this._onErrorHooks;
+    if (callbacks.length === 0) {
+      console.error(error);
+      return;
     }
-  }
-  passOver(enabled = true) {
-    this._passOverMode = enabled;
+    for (let callback of callbacks) {
+      if (callback(error) === true) {
+        break;
+      }
+    }
   }
   onFulfilled(handler) {
     this._onFulfilledHooks.push(handler);
     if (this.isSettled()) {
       handler(this._promiseValue);
     }
+    return this;
+  }
+  onError(handler) {
+    this._onErrorHooks.push(handler);
     return this;
   }
   finally(handler) {
@@ -236,8 +244,8 @@ function createSimpleArrestor(errorHandler, callback) {
   return arrestor;
 }
 
-function arrestorGear(promise) {
-  return new ArrestorGear(promise);
+function arrestorGear(promiseOrConstructor) {
+  return new ArrestorGear(promiseOrConstructor);
 }
 
 module.exports = arrestorGear;

@@ -1,9 +1,5 @@
-import { HttpError, StatusCodePatterns } from '../types/response';
-import {
-  matchHttpError,
-  matchHttpStatusCode,
-  matchHttpValidationError,
-} from './utils';
+import { PromiseOrConstructor, HttpError, StatusCodePatterns } from '../types';
+import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 enum PromiseStatus {
@@ -23,9 +19,11 @@ export default class ArrestorGear {
   protected _onErrorHooks: Array<Function> = [];
   protected _arrestors: Array<Function> = [];
 
-  constructor(promise: Promise<any> | (() => Promise<any>)) {
-    if (typeof promise === 'function') {
-      promise = promise();
+  constructor(promiseOrConstructor: PromiseOrConstructor) {
+    let promise = promiseOrConstructor;
+
+    if (typeof promiseOrConstructor === 'function') {
+      promise = promiseOrConstructor();
 
       if (!(promise instanceof Promise)) {
         throw new TypeError('Initial function must return an Promise');
@@ -138,10 +136,7 @@ export default class ArrestorGear {
   }
 
   isSettled(): boolean {
-    return (
-      this._promiseStatus === PromiseStatus.FULFILLED ||
-      this._promiseStatus === PromiseStatus.REJECTED
-    );
+    return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
   }
 
   captureAxiosError(handler: (error: HttpError) => any): this {
@@ -158,10 +153,7 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureStatusCode(
-    patterns: StatusCodePatterns,
-    handler: (error: HttpError) => any
-  ): this {
+  captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
         handler(reason);
@@ -175,9 +167,7 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureValidationError(
-    handler: (messageBag: ValidationMessageBag) => any
-  ): this {
+  captureValidationError(handler: (messageBag: ValidationMessageBag) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpValidationError(reason)) {
         handler(new ValidationMessageBag(reason.response));
@@ -204,10 +194,7 @@ export default class ArrestorGear {
   }
 }
 
-function createSimpleArrestor(
-  errorHandler: (reason: any) => boolean,
-  callback: Function
-): SimpleArrestor {
+function createSimpleArrestor(errorHandler: (reason: any) => boolean, callback: Function): SimpleArrestor {
   let arrestor = errorHandler as SimpleArrestor;
   arrestor._handler = callback;
 
