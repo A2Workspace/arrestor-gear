@@ -1,4 +1,4 @@
-import { StatusCodePatterns } from '../types';
+import { StatusCodePatterns } from '../types/response';
 
 export function wrapArray(value: any): Array<any> {
   return Array.isArray(value) ? value : [value];

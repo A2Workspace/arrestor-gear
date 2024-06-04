@@ -246,4 +246,4 @@ function arrestorGear(promiseOrConstructor) {
   return new ArrestorGear(promiseOrConstructor);
 }
 
-export { arrestorGear as default };
+export { arrestorGear as default, isAxiosError, isHttpError, matchHttpError, matchHttpStatusCode, matchHttpValidationError, matchStatusCode, resolveResponseStatusCode, wrapArray };

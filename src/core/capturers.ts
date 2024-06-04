@@ -1,4 +1,5 @@
-import { HttpErrorHandler, StatusCodePatterns, ValidationErrorHandler } from '../types';
+import { ValidationErrorHandler } from '../types/core';
+import { HttpErrorHandler, StatusCodePatterns } from '../types/response';
 import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
