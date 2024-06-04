@@ -1,4 +1,5 @@
-import { PromiseOrConstructor, HttpError, StatusCodePatterns } from '../types';
+import { PromiseOrConstructor } from '../types/core';
+import { HttpError, StatusCodePatterns } from '../types/response';
 import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 

@@ -1,5 +1,4 @@
-import type { AxiosError, AxiosResponse } from 'axios';
-import ValidationMessageBag from '../core/ValidationMessageBag';
+import { AxiosError, AxiosResponse } from 'axios';
 
 export type HttpResponse<T = HttpResponseData, D = any> = AxiosResponse<T, D>;
 
@@ -13,7 +12,5 @@ export type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
 };
 
 export type HttpErrorHandler = (error: HttpError<HttpResponseData>) => any;
-
-export type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
 
 export type StatusCodePatterns = number | string | Array<number | string>;

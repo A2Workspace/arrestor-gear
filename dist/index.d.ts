@@ -1,5 +1,15 @@
 import { AxiosResponse, AxiosError } from 'axios';
 
+type HttpResponse<T = HttpResponseData, D = any> = AxiosResponse<T, D>;
+type HttpResponseData<T = any> = {
+    message: string;
+    errors: T;
+};
+type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
+    response: HttpResponse<T>;
+};
+type StatusCodePatterns = number | string | Array<number | string>;
+
 declare class ValidationMessageBag {
     private _response;
     private _message;
@@ -13,23 +23,14 @@ declare class ValidationMessageBag {
     first(key?: string): string | null;
     all(formatter?: ValidationErrorsFormatter): ValidationErrors;
 }
-declare type ValidationErrors = {
+type ValidationErrors = {
     [key: string]: Array<string>;
 };
-declare type ValidationErrorsFormatter = (messages: Array<string>) => string;
+type ValidationErrorsFormatter = (messages: Array<string>) => string;
 
-declare type HttpResponse<T = HttpResponseData, D = any> = AxiosResponse<T, D>;
-declare type HttpResponseData<T = any> = {
-    message: string;
-    errors: T;
-};
-declare type HttpError<T = HttpResponseData> = AxiosError<T, any> & {
-    response: HttpResponse<T>;
-};
-declare type StatusCodePatterns = number | string | Array<number | string>;
-
-declare type PromiseOrConstructor = Promise<any> | PromiseConstructor;
-declare type PromiseConstructor = () => Promise<any>;
+type PromiseOrConstructor = Promise<any> | PromiseConstructor;
+type PromiseConstructor = () => Promise<any>;
+type ValidationErrorHandler = (messageBag: ValidationMessageBag) => any;
 
 declare enum PromiseStatus {
     DEFAULT = "default",
@@ -60,6 +61,15 @@ declare class ArrestorGear {
     captureAny(handler: (error: any) => any): this;
 }
 
+declare function wrapArray(value: any): Array<any>;
+declare function isAxiosError(error: any): boolean;
+declare function isHttpError(error: any): boolean;
+declare function matchHttpError(error: any): boolean;
+declare function matchHttpStatusCode(error: any, patterns: StatusCodePatterns): boolean;
+declare function matchHttpValidationError(error: any): boolean;
+declare function matchStatusCode(patterns: StatusCodePatterns, value: any): boolean;
+declare function resolveResponseStatusCode(value: any): number | null;
+
 declare function arrestorGear(promiseOrConstructor: PromiseOrConstructor): ArrestorGear;
 
-export { arrestorGear as default };
+export { ValidationErrorHandler, arrestorGear as default, isAxiosError, isHttpError, matchHttpError, matchHttpStatusCode, matchHttpValidationError, matchStatusCode, resolveResponseStatusCode, wrapArray };

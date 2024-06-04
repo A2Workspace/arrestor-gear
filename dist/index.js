@@ -1,5 +1,7 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', { value: true });
+
 function wrapArray(value) {
   return Array.isArray(value) ? value : [value];
 }
@@ -248,4 +250,12 @@ function arrestorGear(promiseOrConstructor) {
   return new ArrestorGear(promiseOrConstructor);
 }
 
-module.exports = arrestorGear;
+exports["default"] = arrestorGear;
+exports.isAxiosError = isAxiosError;
+exports.isHttpError = isHttpError;
+exports.matchHttpError = matchHttpError;
+exports.matchHttpStatusCode = matchHttpStatusCode;
+exports.matchHttpValidationError = matchHttpValidationError;
+exports.matchStatusCode = matchStatusCode;
+exports.resolveResponseStatusCode = resolveResponseStatusCode;
+exports.wrapArray = wrapArray;
