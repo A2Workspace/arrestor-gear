@@ -139,12 +139,12 @@ class ArrestorGear {
     this._promiseStatus = PromiseStatus.PENDING;
     this._promise = promise;
   }
-  _fireHooks(stack, value = null) {
+  _fireHooks(stack, ...args) {
     let i = 0;
     let len = stack.length;
     while (i < len) {
       try {
-        stack[i++](value);
+        stack[i++](...args);
       } catch (error) {
         this._fireOnErrorHooks(error);
       }
@@ -194,6 +194,9 @@ class ArrestorGear {
         handler(this._promiseStatus === PromiseStatus.FULFILLED);
       }
     }
+    return this.getPromise();
+  }
+  getPromise() {
     return Promise.race([this._promise]).then(() => {
       return this._promiseStatus === PromiseStatus.FULFILLED;
     });
@@ -223,6 +226,7 @@ class ArrestorGear {
   }
   captureValidationError(handler) {
     const arrestor = createSimpleArrestor(function(reason) {
+      console.log("reason", reason);
       if (matchHttpValidationError(reason)) {
         handler(new ValidationMessageBag(reason.response));
         return true;
@@ -232,11 +236,10 @@ class ArrestorGear {
     return this;
   }
   captureAny(handler) {
-    const arrestor = createSimpleArrestor(function(reason) {
+    createSimpleArrestor(function(reason) {
       handler(reason);
       return true;
     }, handler);
-    this._arrestors.push(arrestor);
     return this;
   }
 }

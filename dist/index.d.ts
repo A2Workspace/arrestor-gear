@@ -38,22 +38,23 @@ declare enum PromiseStatus {
     FULFILLED = "fulfilled",
     REJECTED = "rejected"
 }
-declare class ArrestorGear {
-    protected _promise: Promise<any>;
-    protected _promiseValue: any;
+declare class ArrestorGear<T = Record<string, any>> {
+    protected _promise: Promise<T>;
+    protected _promiseValue: T | null;
     protected _promiseReason: any;
     protected _promiseStatus: PromiseStatus;
-    protected _onFulfilledHooks: Array<Function>;
-    protected _onFinallyHooks: Array<Function>;
+    protected _onFulfilledHooks: ((data: T) => void)[];
+    protected _onFinallyHooks: ((isFulfilled: boolean) => void)[];
     protected _onErrorHooks: Array<Function>;
     protected _arrestors: Array<Function>;
     constructor(promiseOrConstructor: PromiseOrConstructor);
-    protected _fireHooks(stack: Array<Function>, value?: any): void;
+    protected _fireHooks(stack: Function[], ...args: any[]): void;
     protected _fireArrestors(reason: any): void;
     protected _fireOnErrorHooks(error: any): void;
-    onFulfilled(handler: (promiseValue: any) => void): this;
-    onError(handler: (error: any) => boolean | void): this;
+    onFulfilled(handler: (promiseValue: T) => void): this;
+    onError(handler: (error: any) => true | void): this;
     finally(handler?: (isFulfilled: boolean) => any): Promise<any>;
+    getPromise(): Promise<boolean>;
     isSettled(): boolean;
     captureAxiosError(handler: (error: HttpError) => any): this;
     captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this;
