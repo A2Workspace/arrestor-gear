@@ -1,9 +1,13 @@
 import ArrestorGear from './core/ArrestorGear';
 import { PromiseOrConstructor } from './types/core';
 
-export default function arrestorGear(promiseOrConstructor: PromiseOrConstructor): ArrestorGear {
-  return new ArrestorGear(promiseOrConstructor);
+export default function arrestorGear<T>(
+  promiseOrConstructor: PromiseOrConstructor
+): ArrestorGear {
+  return new ArrestorGear<T>(promiseOrConstructor);
 }
 
 export * from './core/utils';
-export type { ValidationErrorHandler } from './types/core';
+export type { ValidationHttpErrorHandler } from './types/core';
+
+export { default as useArrestorGear } from './core/useArrestorGear';

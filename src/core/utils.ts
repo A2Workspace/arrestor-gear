@@ -1,4 +1,4 @@
-
+import { HttpError } from '../types/response';
 
 export function wrapArray<T>(value: T | T[]): T[] {
   return Array.isArray(value) ? value : [value];
@@ -7,15 +7,16 @@ export function wrapArray<T>(value: T | T[]): T[] {
 /**
  * @deprecated
  */
-export function isAxiosError(error: any): boolean {
+export function isAxiosError(error: any): error is HttpError {
   return typeof error === 'object' && error.isAxiosError === true;
 }
 
-export function isHttpError(error: any): boolean {
+export function isHttpError(error: any): error is HttpError {
   return (
     typeof error === 'object' &&
     typeof error.response === 'object' &&
-    typeof error.response.status === 'number'
+    typeof error.response.status === 'number' &&
+    ('data' in error.response || '_data' in error.response)
   );
 }
 

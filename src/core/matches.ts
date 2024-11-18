@@ -1,18 +1,21 @@
-import { StatusCodePatterns } from '../types/response';
+import { StatusCodePatterns } from '../types/core';
+import { HttpError, ValidationHttpError } from '../types/response';
 import { isHttpError, resolveResponseStatusCode, wrapArray } from './utils';
 
-export function matchHttpError(error: any): boolean {
+export function matchHttpError(error: any): error is HttpError {
   return isHttpError(error);
 }
 
 export function matchHttpStatusCode(
   error: any,
   patterns: StatusCodePatterns
-): boolean {
+): error is HttpError {
   return isHttpError(error) && matchStatusCode(patterns, error.response.status);
 }
 
-export function matchHttpValidationError(error: any): boolean {
+export function matchHttpValidationError(
+  error: any
+): error is ValidationHttpError {
   return isHttpError(error) && matchStatusCode(422, error.response.status);
 }
 

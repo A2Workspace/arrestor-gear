@@ -1,5 +1,11 @@
-import { HttpResponse } from '../types/response';
+import {
+  FetchHttpResponse,
+  HttpResponse,
+  ValidationErrors,
+} from '../types/response';
 import { wrapArray } from './utils';
+
+export type ValidationErrorsFormatter = (messages: Array<string>) => string;
 
 export default class ValidationMessageBag {
   private _response: HttpResponse;
@@ -7,15 +13,19 @@ export default class ValidationMessageBag {
   private _errors: ValidationErrors;
 
   constructor(response: HttpResponse) {
+    const payload = response.data || (response as FetchHttpResponse)._data;
+
     this._response = response;
-    this._message = response.data.message || 'The given data was invalid';
+    this._message = payload.message || 'The given data was invalid';
+    this._errors = (function () {
+      let errors = payload.errors || {};
 
-    let errors = response.data.errors || {};
-    for (const [key, value] of Object.entries(errors)) {
-      errors[key] = formatErrorMessages(value);
-    }
+      for (const [key, value] of Object.entries(errors)) {
+        errors[key] = formatErrorMessages(value);
+      }
 
-    this._errors = errors as ValidationErrors;
+      return errors as ValidationErrors;
+    })();
   }
 
   get response(): HttpResponse {
@@ -52,10 +62,14 @@ export default class ValidationMessageBag {
 
   all(formatter?: ValidationErrorsFormatter) {
     if (typeof formatter === 'function') {
-      return Object.entries(this._errors).reduce(function (parsed, [key, value]) {
+      return Object.entries(this._errors).reduce(function (
+        parsed,
+        [key, value]
+      ) {
         parsed[key] = formatter(value);
         return parsed;
-      }, {});
+      },
+      {});
     }
 
     return this._errors;
@@ -68,9 +82,3 @@ export function formatErrorMessages(errors: any): Array<string> {
 
   return errors;
 }
-
-export type ValidationErrors = {
-  [key: string]: Array<string>;
-};
-
-export type ValidationErrorsFormatter = (messages: Array<string>) => string;

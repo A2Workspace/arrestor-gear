@@ -1,5 +1,10 @@
-import { PromiseOrConstructor } from '../types/core';
-import { HttpError, StatusCodePatterns } from '../types/response';
+import {
+  HttpErrorHandler,
+  PromiseOrConstructor,
+  ValidationHttpErrorHandler,
+  StatusCodePatterns,
+} from '../types/core';
+import { FetchHttpResponse } from '../types/response';
 import {
   matchHttpError,
   matchHttpStatusCode,
@@ -140,13 +145,13 @@ export default class ArrestorGear<T = Record<string, any>> {
       }
     }
 
-    return this.getPromise();
-  }
-
-  getPromise() {
     return Promise.race([this._promise]).then(() => {
       return this._status === Status.FULFILLED;
     });
+  }
+
+  getPromise() {
+    return this._promise;
   }
 
   /**
@@ -165,10 +170,18 @@ export default class ArrestorGear<T = Record<string, any>> {
   /**
    * @deprecated
    */
-  captureAxiosError(handler: (error: HttpError) => any): this {
+  captureAxiosError(handler: HttpErrorHandler): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (isAxiosError(reason)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -179,10 +192,18 @@ export default class ArrestorGear<T = Record<string, any>> {
     return this;
   }
 
-  captureHttpError(handler: (error: HttpError) => any): this {
+  captureHttpError(handler: HttpErrorHandler): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpError(reason)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -195,11 +216,19 @@ export default class ArrestorGear<T = Record<string, any>> {
 
   captureStatusCode(
     patterns: StatusCodePatterns,
-    handler: (error: HttpError) => any
+    handler: HttpErrorHandler
   ): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -210,12 +239,20 @@ export default class ArrestorGear<T = Record<string, any>> {
     return this;
   }
 
-  captureValidationError(
-    handler: (messageBag: ValidationMessageBag) => any
-  ): this {
+  captureValidationError(handler: ValidationHttpErrorHandler): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpValidationError(reason)) {
-        handler(new ValidationMessageBag(reason.response));
+        const messageBag = new ValidationMessageBag(reason.response);
+
+        handler(messageBag, {
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -240,7 +277,7 @@ export default class ArrestorGear<T = Record<string, any>> {
 }
 
 function createSimpleArrestor(
-  errorHandler: (reason: any) => boolean,
+  errorHandler: (reason: any) => true | void,
   callback: Function
 ): SimpleArrestor {
   let arrestor = errorHandler as SimpleArrestor;
@@ -249,7 +286,7 @@ function createSimpleArrestor(
   return arrestor;
 }
 
-type SimpleArrestor = {
+interface SimpleArrestor {
   (reason: any): true | void;
   _handler: Function;
-};
+}

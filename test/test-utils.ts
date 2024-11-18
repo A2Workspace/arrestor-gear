@@ -26,7 +26,7 @@ export function createHttpError(status: number, data?: any): AxiosError<any> {
   const response = {
     data,
     status,
-    statusText: '',
+    statusText: '[TEST HTTP RESPONSE STATUS TEXT]',
     headers: {},
     config: {},
   };
