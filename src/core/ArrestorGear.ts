@@ -5,6 +5,7 @@ import {
   matchHttpStatusCode,
   matchHttpValidationError,
 } from './matches';
+import { isAxiosError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
 enum Status {
@@ -22,7 +23,7 @@ export default class ArrestorGear<T = Record<string, any>> {
   protected _onFulfilledHooks: ((data: T) => void)[] = [];
   protected _onFinallyHooks: ((isFulfilled: boolean) => void)[] = [];
   protected _onErrorHooks: ((error: any) => true | void)[] = [];
-  protected _arrestors: Array<Function> = [];
+  protected _arrestors: ((reason: any) => true | void)[] = [];
 
   constructor(promiseOrConstructor: PromiseOrConstructor) {
     let promise = (() => {
@@ -161,7 +162,24 @@ export default class ArrestorGear<T = Record<string, any>> {
     );
   }
 
+  /**
+   * @deprecated
+   */
   captureAxiosError(handler: (error: HttpError) => any): this {
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      if (isAxiosError(reason)) {
+        handler(reason);
+
+        return true;
+      }
+    }, handler);
+
+    this._arrestors.push(arrestor);
+
+    return this;
+  }
+
+  captureHttpError(handler: (error: HttpError) => any): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpError(reason)) {
         handler(reason);
@@ -196,8 +214,6 @@ export default class ArrestorGear<T = Record<string, any>> {
     handler: (messageBag: ValidationMessageBag) => any
   ): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
-      console.log('reason', reason);
-
       if (matchHttpValidationError(reason)) {
         handler(new ValidationMessageBag(reason.response));
 
@@ -234,6 +250,6 @@ function createSimpleArrestor(
 }
 
 type SimpleArrestor = {
-  (reason: any): boolean;
+  (reason: any): true | void;
   _handler: Function;
 };
