@@ -1,49 +1,63 @@
-import { PromiseOrConstructor } from '../types/core';
-import { HttpError, StatusCodePatterns } from '../types/response';
-import { matchHttpError, matchHttpStatusCode, matchHttpValidationError } from './utils';
+import {
+  HttpErrorHandler,
+  PromiseOrConstructor,
+  ValidationHttpErrorHandler,
+  StatusCodePatterns,
+} from '../types/core';
+import { FetchHttpResponse } from '../types/response';
+import {
+  matchHttpError,
+  matchHttpStatusCode,
+  matchHttpValidationError,
+} from './matches';
+import { isAxiosError } from './utils';
 import ValidationMessageBag from './ValidationMessageBag';
 
-enum PromiseStatus {
+enum Status {
   DEFAULT = 'default',
   PENDING = 'pending',
   FULFILLED = 'fulfilled',
   REJECTED = 'rejected',
 }
 
-export default class ArrestorGear {
-  protected _promise: Promise<any>;
-  protected _promiseValue: any = null;
+export default class ArrestorGear<T = Record<string, any>> {
+  protected _promise: Promise<T>;
+  protected _fulfilledValue: T | null = null;
   protected _promiseReason: any = null;
-  protected _promiseStatus: PromiseStatus = PromiseStatus.DEFAULT;
-  protected _onFulfilledHooks: Array<Function> = [];
-  protected _onFinallyHooks: Array<Function> = [];
-  protected _onErrorHooks: Array<Function> = [];
-  protected _arrestors: Array<Function> = [];
+  protected _status: Status = Status.DEFAULT;
+  protected _onFulfilledHooks: ((data: T) => void)[] = [];
+  protected _onFinallyHooks: ((isFulfilled: boolean) => void)[] = [];
+  protected _onErrorHooks: ((error: any) => true | void)[] = [];
+  protected _arrestors: ((reason: any) => true | void)[] = [];
 
   constructor(promiseOrConstructor: PromiseOrConstructor) {
-    let promise = promiseOrConstructor;
+    let promise = (() => {
+      if (typeof promiseOrConstructor === 'function') {
+        let result = promiseOrConstructor();
 
-    if (typeof promiseOrConstructor === 'function') {
-      promise = promiseOrConstructor();
+        if (result instanceof Promise) {
+          return result;
+        }
 
-      if (!(promise instanceof Promise)) {
         throw new TypeError('Initial function must return an Promise');
       }
-    }
 
-    if (!(promise instanceof Promise)) {
+      if (promiseOrConstructor instanceof Promise) {
+        return promiseOrConstructor;
+      }
+
       throw new TypeError('Argument must be a Promise');
-    }
+    })();
 
     promise = promise.then(
       (value) => {
-        this._promiseStatus = PromiseStatus.FULFILLED;
-        this._promiseValue = value;
+        this._status = Status.FULFILLED;
+        this._fulfilledValue = value;
 
         this._fireHooks(this._onFulfilledHooks, value);
       },
       (reason) => {
-        this._promiseStatus = PromiseStatus.REJECTED;
+        this._status = Status.REJECTED;
         this._promiseReason = reason;
 
         this._fireArrestors(reason);
@@ -51,21 +65,21 @@ export default class ArrestorGear {
     );
 
     promise = promise.finally(() => {
-      const isFulfilled = this._promiseStatus === PromiseStatus.FULFILLED;
+      const isFulfilled = this._status === Status.FULFILLED;
       this._fireHooks(this._onFinallyHooks, isFulfilled);
     });
 
-    this._promiseStatus = PromiseStatus.PENDING;
+    this._status = Status.PENDING;
     this._promise = promise;
   }
 
-  protected _fireHooks(stack: Array<Function>, value: any = null): void {
+  protected _fireHooks(stack: Function[], ...args: any[]): void {
     let i = 0;
     let len = stack.length;
 
     while (i < len) {
       try {
-        stack[i++](value);
+        stack[i++](...args);
       } catch (error) {
         this._fireOnErrorHooks(error);
       }
@@ -73,7 +87,7 @@ export default class ArrestorGear {
   }
 
   protected _fireArrestors(reason: any): void {
-    const arrestors: Array<Function> = this._arrestors;
+    const arrestors = this._arrestors;
 
     let i = 0;
     let len = arrestors.length;
@@ -91,7 +105,7 @@ export default class ArrestorGear {
   }
 
   protected _fireOnErrorHooks(error: any): void {
-    const callbacks: Array<Function> = this._onErrorHooks;
+    const callbacks = this._onErrorHooks;
 
     if (callbacks.length === 0) {
       console.error(error);
@@ -106,17 +120,17 @@ export default class ArrestorGear {
     }
   }
 
-  onFulfilled(handler: (promiseValue: any) => void): this {
+  onFulfilled(handler: (promiseValue: T) => void): this {
     this._onFulfilledHooks.push(handler);
 
     if (this.isSettled()) {
-      handler(this._promiseValue);
+      handler(this._fulfilledValue);
     }
 
     return this;
   }
 
-  onError(handler: (error: any) => boolean | void): this {
+  onError(handler: (error: any) => true | void): this {
     this._onErrorHooks.push(handler);
 
     return this;
@@ -127,23 +141,69 @@ export default class ArrestorGear {
       this._onFinallyHooks.push(handler);
 
       if (this.isSettled()) {
-        handler(this._promiseStatus === PromiseStatus.FULFILLED);
+        handler(this._status === Status.FULFILLED);
       }
     }
 
     return Promise.race([this._promise]).then(() => {
-      return this._promiseStatus === PromiseStatus.FULFILLED;
+      return this._status === Status.FULFILLED;
     });
   }
 
-  isSettled(): boolean {
-    return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
+  getPromise() {
+    return this._promise;
   }
 
-  captureAxiosError(handler: (error: HttpError) => any): this {
+  /**
+   * Short name of getPromise()
+   */
+  promise() {
+    return this.getPromise();
+  }
+
+  isSettled(): boolean {
+    return (
+      this._status === Status.FULFILLED || this._status === Status.REJECTED
+    );
+  }
+
+  /**
+   * @deprecated
+   */
+  captureAxiosError(handler: HttpErrorHandler): this {
+    const arrestor = createSimpleArrestor(function (reason: any) {
+      if (isAxiosError(reason)) {
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
+
+        return true;
+      }
+    }, handler);
+
+    this._arrestors.push(arrestor);
+
+    return this;
+  }
+
+  captureHttpError(handler: HttpErrorHandler): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpError(reason)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -154,10 +214,21 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureStatusCode(patterns: StatusCodePatterns, handler: (error: HttpError) => any): this {
+  captureStatusCode(
+    patterns: StatusCodePatterns,
+    handler: HttpErrorHandler
+  ): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpStatusCode(reason, patterns)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -168,10 +239,20 @@ export default class ArrestorGear {
     return this;
   }
 
-  captureValidationError(handler: (messageBag: ValidationMessageBag) => any): this {
+  captureValidationError(handler: ValidationHttpErrorHandler): this {
     const arrestor = createSimpleArrestor(function (reason: any) {
       if (matchHttpValidationError(reason)) {
-        handler(new ValidationMessageBag(reason.response));
+        const messageBag = new ValidationMessageBag(reason.response);
+
+        handler(messageBag, {
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data:
+            reason.response.data ||
+            (reason.response as FetchHttpResponse)._data ||
+            null,
+        });
 
         return true;
       }
@@ -195,14 +276,17 @@ export default class ArrestorGear {
   }
 }
 
-function createSimpleArrestor(errorHandler: (reason: any) => boolean, callback: Function): SimpleArrestor {
+function createSimpleArrestor(
+  errorHandler: (reason: any) => true | void,
+  callback: Function
+): SimpleArrestor {
   let arrestor = errorHandler as SimpleArrestor;
   arrestor._handler = callback;
 
   return arrestor;
 }
 
-type SimpleArrestor = {
-  (reason: any): boolean;
+interface SimpleArrestor {
+  (reason: any): true | void;
   _handler: Function;
-};
+}

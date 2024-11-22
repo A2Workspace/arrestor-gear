@@ -136,15 +136,15 @@ describe('core/ArrestorGear', function () {
       mockRquest(422, {});
 
       const handleValidationError = jest.fn((errorBag) => errorBag.message);
-      const handleAxiosError = jest.fn(() => {});
+      const handleHttpError = jest.fn(() => {});
 
       const ag = new ArrestorGear(axios.post(ENDPOINT));
       ag.captureValidationError(handleValidationError);
-      ag.captureAxiosError(handleAxiosError);
+      ag.captureHttpError(handleHttpError);
 
       await ag.finally();
 
-      expect(handleAxiosError).not.toHaveBeenCalled();
+      expect(handleHttpError).not.toHaveBeenCalled();
 
       expect(handleValidationError).toHaveBeenCalledTimes(1);
       expect(handleValidationError).toHaveReturnedWith(
@@ -156,6 +156,12 @@ describe('core/ArrestorGear', function () {
           errors: expect.any(Object),
           message: expect.any(String),
           first: expect.any(Function),
+        }),
+        expect.objectContaining({
+          error: expect.any(Object),
+          response: expect.any(Object),
+          status: expect.any(Number),
+          data: expect.any(Object),
         })
       );
     });
@@ -267,7 +273,7 @@ describe('core/ArrestorGear', function () {
 
     test('Should stop iterating callbacks when TRUE returns', async () => {
       const callback1 = jest.fn((error) => {});
-      const callback2 = jest.fn((error) => true);
+      const callback2 = jest.fn((error) => true as true);
       const callback3 = jest.fn((error) => {});
 
       const ag = new ArrestorGear(Promise.resolve(true));

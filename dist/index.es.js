@@ -5,8 +5,22 @@ function isAxiosError(error) {
   return typeof error === "object" && error.isAxiosError === true;
 }
 function isHttpError(error) {
-  return isAxiosError(error);
+  return typeof error === "object" && typeof error.response === "object" && typeof error.response.status === "number" && ("data" in error.response || "_data" in error.response);
 }
+function resolveResponseStatusCode(value) {
+  var _a;
+  if (typeof value === "number") {
+    return value;
+  }
+  if (!isNaN(value)) {
+    return parseInt(value);
+  }
+  if (typeof value === "object") {
+    return ((_a = value.response) == null ? void 0 : _a.status) || value.status || null;
+  }
+  return null;
+}
+
 function matchHttpError(error) {
   return isHttpError(error);
 }
@@ -29,29 +43,19 @@ function matchStatusCode(patterns, value) {
   };
   return Boolean(patterns.find(callback));
 }
-function resolveResponseStatusCode(value) {
-  var _a;
-  if (typeof value === "number") {
-    return value;
-  }
-  if (!isNaN(value)) {
-    return parseInt(value);
-  }
-  if (typeof value === "object") {
-    return ((_a = value.response) == null ? void 0 : _a.status) || value.status || null;
-  }
-  return null;
-}
 
 class ValidationMessageBag {
   constructor(response) {
+    const payload = response.data || response._data;
     this._response = response;
-    this._message = response.data.message || "The given data was invalid";
-    let errors = response.data.errors || {};
-    for (const [key, value] of Object.entries(errors)) {
-      errors[key] = formatErrorMessages(value);
-    }
-    this._errors = errors;
+    this._message = payload.message || "The given data was invalid";
+    this._errors = function() {
+      let errors = payload.errors || {};
+      for (const [key, value] of Object.entries(errors)) {
+        errors[key] = formatErrorMessages(value);
+      }
+      return errors;
+    }();
   }
   get response() {
     return this._response;
@@ -93,54 +97,57 @@ function formatErrorMessages(errors) {
   return errors;
 }
 
-var PromiseStatus;
-(function(PromiseStatus2) {
-  PromiseStatus2["DEFAULT"] = "default";
-  PromiseStatus2["PENDING"] = "pending";
-  PromiseStatus2["FULFILLED"] = "fulfilled";
-  PromiseStatus2["REJECTED"] = "rejected";
-})(PromiseStatus || (PromiseStatus = {}));
+var Status;
+(function(Status2) {
+  Status2["DEFAULT"] = "default";
+  Status2["PENDING"] = "pending";
+  Status2["FULFILLED"] = "fulfilled";
+  Status2["REJECTED"] = "rejected";
+})(Status || (Status = {}));
 class ArrestorGear {
   constructor(promiseOrConstructor) {
-    this._promiseValue = null;
+    this._fulfilledValue = null;
     this._promiseReason = null;
-    this._promiseStatus = PromiseStatus.DEFAULT;
+    this._status = Status.DEFAULT;
     this._onFulfilledHooks = [];
     this._onFinallyHooks = [];
     this._onErrorHooks = [];
     this._arrestors = [];
-    let promise = promiseOrConstructor;
-    if (typeof promiseOrConstructor === "function") {
-      promise = promiseOrConstructor();
-      if (!(promise instanceof Promise)) {
+    let promise = (() => {
+      if (typeof promiseOrConstructor === "function") {
+        let result = promiseOrConstructor();
+        if (result instanceof Promise) {
+          return result;
+        }
         throw new TypeError("Initial function must return an Promise");
       }
-    }
-    if (!(promise instanceof Promise)) {
+      if (promiseOrConstructor instanceof Promise) {
+        return promiseOrConstructor;
+      }
       throw new TypeError("Argument must be a Promise");
-    }
+    })();
     promise = promise.then((value) => {
-      this._promiseStatus = PromiseStatus.FULFILLED;
-      this._promiseValue = value;
+      this._status = Status.FULFILLED;
+      this._fulfilledValue = value;
       this._fireHooks(this._onFulfilledHooks, value);
     }, (reason) => {
-      this._promiseStatus = PromiseStatus.REJECTED;
+      this._status = Status.REJECTED;
       this._promiseReason = reason;
       this._fireArrestors(reason);
     });
     promise = promise.finally(() => {
-      const isFulfilled = this._promiseStatus === PromiseStatus.FULFILLED;
+      const isFulfilled = this._status === Status.FULFILLED;
       this._fireHooks(this._onFinallyHooks, isFulfilled);
     });
-    this._promiseStatus = PromiseStatus.PENDING;
+    this._status = Status.PENDING;
     this._promise = promise;
   }
-  _fireHooks(stack, value = null) {
+  _fireHooks(stack, ...args) {
     let i = 0;
     let len = stack.length;
     while (i < len) {
       try {
-        stack[i++](value);
+        stack[i++](...args);
       } catch (error) {
         this._fireOnErrorHooks(error);
       }
@@ -175,7 +182,7 @@ class ArrestorGear {
   onFulfilled(handler) {
     this._onFulfilledHooks.push(handler);
     if (this.isSettled()) {
-      handler(this._promiseValue);
+      handler(this._fulfilledValue);
     }
     return this;
   }
@@ -187,20 +194,46 @@ class ArrestorGear {
     if (handler) {
       this._onFinallyHooks.push(handler);
       if (this.isSettled()) {
-        handler(this._promiseStatus === PromiseStatus.FULFILLED);
+        handler(this._status === Status.FULFILLED);
       }
     }
     return Promise.race([this._promise]).then(() => {
-      return this._promiseStatus === PromiseStatus.FULFILLED;
+      return this._status === Status.FULFILLED;
     });
   }
+  getPromise() {
+    return this._promise;
+  }
+  promise() {
+    return this.getPromise();
+  }
   isSettled() {
-    return this._promiseStatus === PromiseStatus.FULFILLED || this._promiseStatus === PromiseStatus.REJECTED;
+    return this._status === Status.FULFILLED || this._status === Status.REJECTED;
   }
   captureAxiosError(handler) {
     const arrestor = createSimpleArrestor(function(reason) {
+      if (isAxiosError(reason)) {
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data: reason.response.data || reason.response._data || null
+        });
+        return true;
+      }
+    }, handler);
+    this._arrestors.push(arrestor);
+    return this;
+  }
+  captureHttpError(handler) {
+    const arrestor = createSimpleArrestor(function(reason) {
       if (matchHttpError(reason)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data: reason.response.data || reason.response._data || null
+        });
         return true;
       }
     }, handler);
@@ -210,7 +243,12 @@ class ArrestorGear {
   captureStatusCode(patterns, handler) {
     const arrestor = createSimpleArrestor(function(reason) {
       if (matchHttpStatusCode(reason, patterns)) {
-        handler(reason);
+        handler({
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data: reason.response.data || reason.response._data || null
+        });
         return true;
       }
     }, handler);
@@ -220,7 +258,13 @@ class ArrestorGear {
   captureValidationError(handler) {
     const arrestor = createSimpleArrestor(function(reason) {
       if (matchHttpValidationError(reason)) {
-        handler(new ValidationMessageBag(reason.response));
+        const messageBag = new ValidationMessageBag(reason.response);
+        handler(messageBag, {
+          error: reason,
+          response: reason.response,
+          status: reason.response.status,
+          data: reason.response.data || reason.response._data || null
+        });
         return true;
       }
     }, handler);
@@ -242,8 +286,47 @@ function createSimpleArrestor(errorHandler, callback) {
   return arrestor;
 }
 
+function useArrestorGear(promiseOrConstructor) {
+  const arrestorGear = new ArrestorGear(promiseOrConstructor);
+  const onFulfilled = (handler) => {
+    arrestorGear.onFulfilled(handler);
+  };
+  const onError = (handler) => {
+    arrestorGear.onError(handler);
+  };
+  const onFinally = (handler) => {
+    arrestorGear.finally(handler);
+  };
+  const promise = arrestorGear.getPromise();
+  const isSettled = () => arrestorGear.isSettled();
+  const captureHttpError = (handler) => {
+    arrestorGear.captureHttpError(handler);
+  };
+  const captureStatusCode = (patterns, handler) => {
+    arrestorGear.captureStatusCode(patterns, handler);
+  };
+  const captureValidationError = (handler) => {
+    arrestorGear.captureValidationError(handler);
+  };
+  const captureAny = (handler) => {
+    arrestorGear.captureAny(handler);
+  };
+  return {
+    arrestorGear,
+    promise,
+    onFulfilled,
+    onError,
+    onFinally,
+    isSettled,
+    captureHttpError,
+    captureStatusCode,
+    captureValidationError,
+    captureAny
+  };
+}
+
 function arrestorGear(promiseOrConstructor) {
   return new ArrestorGear(promiseOrConstructor);
 }
 
-export { arrestorGear as default, isAxiosError, isHttpError, matchHttpError, matchHttpStatusCode, matchHttpValidationError, matchStatusCode, resolveResponseStatusCode, wrapArray };
+export { arrestorGear as default, isAxiosError, isHttpError, resolveResponseStatusCode, useArrestorGear, wrapArray };
