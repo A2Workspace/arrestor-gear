@@ -41,7 +41,8 @@ declare class ValidationMessageBag {
     has(key: string): boolean;
     get(key: string, formatter?: ValidationErrorsFormatter): any;
     first(key?: string): string | null;
-    all(formatter?: ValidationErrorsFormatter): ValidationErrors;
+    all(formatter: ValidationErrorsFormatter): Record<string, any>;
+    all(): ValidationErrors;
 }
 
 type PromiseOrConstructor = Promise<any> | PromiseConstructor;

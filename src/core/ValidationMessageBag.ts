@@ -60,6 +60,9 @@ export default class ValidationMessageBag {
     return Object.values(this._errors).find((messages) => messages[0])[0];
   }
 
+  all(formatter: ValidationErrorsFormatter): Record<string, any>;
+  all(): ValidationErrors;
+
   all(formatter?: ValidationErrorsFormatter) {
     if (typeof formatter === 'function') {
       return Object.entries(this._errors).reduce(function (
