@@ -79,7 +79,7 @@ export default class ValidationMessageBag {
   }
 }
 
-export function formatErrorMessages(errors: any): Array<string> {
+function formatErrorMessages(errors: any): Array<string> {
   errors = wrapArray(errors);
   errors = errors.map((message: any) => String(message));
 
