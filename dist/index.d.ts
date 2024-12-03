@@ -120,6 +120,6 @@ declare function useArrestorGear<T>(promiseOrConstructor: PromiseOrConstructor):
     captureAny: (handler: (error: any) => any) => void;
 };
 
-declare function arrestorGear<T>(promiseOrConstructor: PromiseOrConstructor): ArrestorGear;
+declare function arrestorGear<T>(promiseOrConstructor: PromiseOrConstructor): ArrestorGear<T>;
 
-export { ValidationHttpErrorHandler, arrestorGear as default, isAxiosError, isHttpError, resolveResponseStatusCode, useArrestorGear, wrapArray };
+export { HttpErrorHandler, ValidationErrorResponseData, ValidationErrors, ValidationErrorsFormatter, ValidationHttpError, ValidationHttpErrorHandler, arrestorGear as default, isAxiosError, isHttpError, resolveResponseStatusCode, useArrestorGear, wrapArray };
