@@ -3,7 +3,7 @@ import { PromiseOrConstructor } from './types/core';
 
 export default function arrestorGear<T>(
   promiseOrConstructor: PromiseOrConstructor
-): ArrestorGear {
+): ArrestorGear<T> {
   return new ArrestorGear<T>(promiseOrConstructor);
 }
 
